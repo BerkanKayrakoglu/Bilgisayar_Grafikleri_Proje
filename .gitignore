@@ -1,0 +1,23 @@
+# CMake derleme klasörleri
+cmake-build-debug/
+cmake-build-release/
+/CMakeFiles/
+/CMakeLayout/
+/CMakeSettings.json
+/CMakePresets.json
+/out/
+build/
+
+# CLion ve VS Code ayarları
+.idea/
+.vscode/
+*.user
+
+# Geçici debug/hata günlükleri
+compiler_error.txt
+test_error.txt
+test.cpp
+*.log
+*.exe
+*.o
+*.obj
