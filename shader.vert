@@ -11,11 +11,21 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform bool isFlame;
+uniform float time;
+
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;  
+    vec3 pos = aPos;
+    if (isFlame) {
+        // Alt kısmı (y = -0.5) sabit tutup, üst kısmı (y = 0.5) yukarı doğru uzatıp kısaltıyoruz (dikey salınım)
+        float heightFactor = clamp(aPos.y + 0.5, 0.0, 1.0);
+        pos.y += (sin(time * 12.0) * 0.06 + cos(time * 6.0) * 0.03) * heightFactor;
+    }
+
+    FragPos = vec3(model * vec4(pos, 1.0));
+    Normal = mat3(transpose(inverse(model))) * aNormal;
     TexCoords = aTexCoords;
-    
+
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }

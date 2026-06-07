@@ -37,6 +37,7 @@ uniform vec3 roomLightRightPos;
 uniform vec3 roomLightRightColor;
 
 uniform bool isFlame;
+uniform bool isScreen;
 
 // Yeni Gelişmiş Efekt Uniformları
 uniform vec3 skyColor;
@@ -71,11 +72,37 @@ void main()
     float finalAlpha = objectAlpha;
     
     if(useTexture) {
-        vec4 texColor = texture(diffuseMap, TexCoords * uvScale + uvOffset);
+        vec2 uv = TexCoords;
+        if(isFlame) {
+            // Ateşin yukarı doğru dalgalanma efekti (dikey dalgalar)
+            float wave = sin(uv.x * 6.0 + uv.y * 3.0 - time * 12.0) * 0.04 * uv.y;
+            uv.y += wave;
+            uv.x += cos(uv.y * 4.0 - time * 8.0) * 0.015 * uv.y; // Çok hafif yatay kıvrılma
+            uv = clamp(uv, 0.001, 0.999); // Dokunun dışına çıkıp tekrarlamasını engelliyoruz
+        }
+
+        vec4 texColor = texture(diffuseMap, uv * uvScale + uvOffset);
         // Dokuyu sRGB'den Lineer Alana geçir (Daha doğru ışık hesaplamaları için)
         vec3 texLinear = pow(texColor.rgb, vec3(2.2));
         baseColor = texLinear * objectColor;
-        finalAlpha = texColor.a * objectAlpha;
+
+        if(isFlame) {
+            // Siyah arka planı yok etmek için renk parlaklığına göre alpha değeri hesaplıyoruz.
+            float brightness = dot(texColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+            float alphaVal = clamp(brightness * 2.5, 0.0, 1.0);
+            
+            // Düzlemin geometrik kenarlarını yumuşatarak dikey çizgileri yok ediyoruz (Border Fade)
+            float edgeFade = smoothstep(0.0, 0.05, TexCoords.x) * smoothstep(1.0, 0.95, TexCoords.x) *
+                             smoothstep(0.0, 0.05, TexCoords.y) * smoothstep(1.0, 0.95, TexCoords.y);
+
+            // Doku koordinatlarının (uv) kenarlarını da maskeliyoruz (Görselin kendi kenar çizgilerini silmek için)
+            float textureFade = smoothstep(0.0, 0.08, uv.x) * smoothstep(1.0, 0.92, uv.x) *
+                                smoothstep(0.0, 0.08, uv.y) * smoothstep(1.0, 0.92, uv.y);
+            
+            finalAlpha = alphaVal * edgeFade * textureFade * objectAlpha;
+        } else {
+            finalAlpha = texColor.a * objectAlpha;
+        }
     }
     
     if(finalAlpha < 0.05) {
@@ -240,6 +267,9 @@ void main()
     vec3 result = totalLight * baseColor;
     if(isFlame) {
         result = baseColor;
+    }
+    if(isScreen) {
+        result = baseColor * 1.3f; // Ekrandaki kedi resmini daha parlak/canlı yapmak için renk şiddetini artırıyoruz
     }
     
     // 1. Sis Efekti (Exponential Fog)

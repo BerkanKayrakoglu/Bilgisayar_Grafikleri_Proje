@@ -351,6 +351,7 @@ int main()
     unsigned int flowerTexture = loadTexture("../assets/flower.png");
     unsigned int waterTexture  = loadTexture("../assets/water.png");
     unsigned int welcomeTexture = createTextTexture("WELCOME", "../assets/georgia.ttf", 64);
+    unsigned int catTexture  = loadTexture("../assets/cat.png");
 
     ourShader.use();
     ourShader.setInt("diffuseMap", 0);
@@ -932,15 +933,57 @@ int main()
         ourShader.setMat4("model", modelFireplaceBack);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // Şömine İçindeki Odun
-        ourShader.setVec3("objectColor", 0.25f, 0.12f, 0.05f);
-        glm::mat4 modelFireLog = glm::mat4(1.0f);
-        modelFireLog = glm::translate(modelFireLog, glm::vec3(2.3f, -0.45f, 0.0f));
-        modelFireLog = glm::scale(modelFireLog, glm::vec3(0.1f, 0.05f, 0.4f));
-        ourShader.setMat4("model", modelFireLog);
+        // Şömine İçindeki Odun Parçaları (Stacked Burnt Logs)
+        ourShader.setBool("useTexture", false); // Doku kullanılmıyor, düz renk tonları
+        ourShader.setFloat("specularStrength", 0.05f);
+        ourShader.setFloat("shininess", 8.0f);
+
+        // 1. Sol Alt Odun (Açılı)
+        ourShader.setVec3("objectColor", 0.22f, 0.10f, 0.04f); // Koyu kahve
+        glm::mat4 modelLog1 = glm::mat4(1.0f);
+        modelLog1 = glm::translate(modelLog1, glm::vec3(2.27f, -0.47f, 0.15f));
+        modelLog1 = glm::rotate(modelLog1, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLog1 = glm::scale(modelLog1, glm::vec3(0.08f, 0.06f, 0.35f));
+        ourShader.setMat4("model", modelLog1);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // ŞÖMİNE GERÇEK ATEŞ DOKULU ÇAPRAZ BILLBOARD (Cross-Billboard)
+        // 2. Sağ Alt Odun (Açılı)
+        ourShader.setVec3("objectColor", 0.20f, 0.09f, 0.04f);
+        glm::mat4 modelLog2 = glm::mat4(1.0f);
+        modelLog2 = glm::translate(modelLog2, glm::vec3(2.33f, -0.47f, -0.15f));
+        modelLog2 = glm::rotate(modelLog2, glm::radians(-20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLog2 = glm::scale(modelLog2, glm::vec3(0.08f, 0.06f, 0.35f));
+        ourShader.setMat4("model", modelLog2);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // 3. Üst Orta Odun (Çapraz duran)
+        ourShader.setVec3("objectColor", 0.26f, 0.13f, 0.06f);
+        glm::mat4 modelLog3 = glm::mat4(1.0f);
+        modelLog3 = glm::translate(modelLog3, glm::vec3(2.26f, -0.42f, 0.0f));
+        modelLog3 = glm::rotate(modelLog3, glm::radians(85.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLog3 = glm::scale(modelLog3, glm::vec3(0.07f, 0.05f, 0.38f));
+        ourShader.setMat4("model", modelLog3);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // 4. Ön Küçük Odun
+        ourShader.setVec3("objectColor", 0.18f, 0.08f, 0.03f);
+        glm::mat4 modelLog4 = glm::mat4(1.0f);
+        modelLog4 = glm::translate(modelLog4, glm::vec3(2.20f, -0.48f, 0.05f));
+        modelLog4 = glm::rotate(modelLog4, glm::radians(-10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLog4 = glm::scale(modelLog4, glm::vec3(0.05f, 0.04f, 0.20f));
+        ourShader.setMat4("model", modelLog4);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // 5. Arka Küçük Odun
+        ourShader.setVec3("objectColor", 0.17f, 0.08f, 0.03f);
+        glm::mat4 modelLog5 = glm::mat4(1.0f);
+        modelLog5 = glm::translate(modelLog5, glm::vec3(2.38f, -0.48f, -0.05f));
+        modelLog5 = glm::rotate(modelLog5, glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelLog5 = glm::scale(modelLog5, glm::vec3(0.05f, 0.04f, 0.20f));
+        ourShader.setMat4("model", modelLog5);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // ŞÖMİNE GERÇEK ATEŞ DOKULU YILDIZ BILLBOARD VE EK ALEVLER (Star-Billboard & Offset Flames)
         glBindTexture(GL_TEXTURE_2D, fireTexture);
         ourShader.setBool("useTexture", true);
         ourShader.setVec3("objectColor", 1.0f, 1.0f, 1.0f);
@@ -948,21 +991,134 @@ int main()
         ourShader.setVec2("uvScale", glm::vec2(1.0f, 1.0f));
         ourShader.setBool("isFlame", true);
 
-        // Dikey Düzlem 1 (Z yönünde düzlemsel)
+        // Transparan alevlerin çakışma ve derinlik tamponu (depth writing) kaynaklı kenar çizgisi hatalarını engellemek için depth mask kapatılıyor
+        glDepthMask(GL_FALSE);
+
+        // Ana Düzlem 1 (0 derece)
         glm::mat4 modelFireBillboard1 = glm::mat4(1.0f);
         modelFireBillboard1 = glm::translate(modelFireBillboard1, glm::vec3(2.3f, -0.45f + 0.2f * flicker, 0.0f));
         modelFireBillboard1 = glm::scale(modelFireBillboard1, glm::vec3(0.4f, 0.4f * flicker, 0.005f));
         ourShader.setMat4("model", modelFireBillboard1);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // Dikey Düzlem 2 (X yönünde düzlemsel, kesişen + şekli oluşturur)
+        // Ana Düzlem 2 (90 derece)
         glm::mat4 modelFireBillboard2 = glm::mat4(1.0f);
         modelFireBillboard2 = glm::translate(modelFireBillboard2, glm::vec3(2.3f, -0.45f + 0.2f * flicker, 0.0f));
-        modelFireBillboard2 = glm::scale(modelFireBillboard2, glm::vec3(0.005f, 0.4f * flicker, 0.4f));
+        modelFireBillboard2 = glm::rotate(modelFireBillboard2, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelFireBillboard2 = glm::scale(modelFireBillboard2, glm::vec3(0.4f, 0.4f * flicker, 0.005f));
         ourShader.setMat4("model", modelFireBillboard2);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Ana Düzlem 3 (45 derece)
+        glm::mat4 modelFireBillboard3 = glm::mat4(1.0f);
+        modelFireBillboard3 = glm::translate(modelFireBillboard3, glm::vec3(2.3f, -0.45f + 0.2f * flicker, 0.0f));
+        modelFireBillboard3 = glm::rotate(modelFireBillboard3, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelFireBillboard3 = glm::scale(modelFireBillboard3, glm::vec3(0.4f, 0.4f * flicker, 0.005f));
+        ourShader.setMat4("model", modelFireBillboard3);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Ana Düzlem 4 (135 derece)
+        glm::mat4 modelFireBillboard4 = glm::mat4(1.0f);
+        modelFireBillboard4 = glm::translate(modelFireBillboard4, glm::vec3(2.3f, -0.45f + 0.2f * flicker, 0.0f));
+        modelFireBillboard4 = glm::rotate(modelFireBillboard4, glm::radians(135.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelFireBillboard4 = glm::scale(modelFireBillboard4, glm::vec3(0.4f, 0.4f * flicker, 0.005f));
+        ourShader.setMat4("model", modelFireBillboard4);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Hacim/Doluluk kazandırmak için hafif kaydırılmış ek alevler
+        glm::mat4 modelFireBillboard5 = glm::mat4(1.0f);
+        modelFireBillboard5 = glm::translate(modelFireBillboard5, glm::vec3(2.25f, -0.45f + 0.18f * flicker, 0.1f));
+        modelFireBillboard5 = glm::rotate(modelFireBillboard5, glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelFireBillboard5 = glm::scale(modelFireBillboard5, glm::vec3(0.3f, 0.35f * flicker, 0.005f));
+        ourShader.setMat4("model", modelFireBillboard5);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glm::mat4 modelFireBillboard6 = glm::mat4(1.0f);
+        modelFireBillboard6 = glm::translate(modelFireBillboard6, glm::vec3(2.35f, -0.45f + 0.18f * flicker, -0.1f));
+        modelFireBillboard6 = glm::rotate(modelFireBillboard6, glm::radians(120.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelFireBillboard6 = glm::scale(modelFireBillboard6, glm::vec3(0.3f, 0.35f * flicker, 0.005f));
+        ourShader.setMat4("model", modelFireBillboard6);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         
+        glDepthMask(GL_TRUE); // Derinlik tamponu yazımı tekrar açılıyor
         ourShader.setBool("isFlame", false);
+
+        // 8d. KÖŞE MASASI VE TELEVİZYON (Corner Table & TV)
+        // Masayı ve TV'yi köşeye çapraz yerleştirmek (duvarlarla üçgen yapacak şekilde)
+        // ve koltuğa bakacak şekilde -45 derece döndürmek için bir temel matris oluşturuyoruz.
+        glm::mat4 baseTvTable = glm::mat4(1.0f);
+        baseTvTable = glm::translate(baseTvTable, glm::vec3(1.95f, 0.0f, -1.45f)); // Köşe konumu (duvarlarla üçgen yapar)
+        baseTvTable = glm::rotate(baseTvTable, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Koltuğa dönmesi için -45 derece dönüş
+
+        // Masa Tablası (Mavi renkli modern masa üstü - Doku kullanılmıyor)
+        glBindVertexArray(cubeVAO);
+        ourShader.setBool("useTexture", false);
+        ourShader.setVec3("objectColor", 0.12f, 0.38f, 0.72f); // Vibrant steel blue (kullanıcı isteğiyle mavi)
+        ourShader.setFloat("specularStrength", 0.3f); // Hafif parlak cilalı cila görünümü
+        ourShader.setFloat("shininess", 64.0f);
+
+        glm::mat4 modelTableTop = baseTvTable;
+        modelTableTop = glm::translate(modelTableTop, glm::vec3(0.0f, -0.1f, 0.0f));
+        modelTableTop = glm::scale(modelTableTop, glm::vec3(1.0f, 0.04f, 0.55f)); // Genişletilmiş masa (genişlik = 1.0, derinlik = 0.55)
+        ourShader.setMat4("model", modelTableTop);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Masa Ayakları (4 adet - Koyu Mavi)
+        ourShader.setVec3("objectColor", 0.08f, 0.26f, 0.52f); // Bacaklar biraz daha koyu mavi
+        float legX[2] = { -0.45f, 0.45f }; // Masa genişliği 1.0 olduğu için offset 0.45
+        float legZ[2] = { -0.23f, 0.23f }; // Masa derinliği 0.55 olduğu için offset 0.23
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                glm::mat4 modelLeg = baseTvTable;
+                modelLeg = glm::translate(modelLeg, glm::vec3(legX[i], -0.3f, legZ[j]));
+                modelLeg = glm::scale(modelLeg, glm::vec3(0.04f, 0.36f, 0.04f));
+                ourShader.setMat4("model", modelLeg);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
+        }
+
+        // BÜYÜTÜLMÜŞ TELEVİZYON (Koltuğa Dönük)
+        // Televizyon Altlığı (Siyah Metal/Plastik)
+        ourShader.setBool("useTexture", false);
+        ourShader.setVec3("objectColor", 0.12f, 0.12f, 0.12f);
+        ourShader.setFloat("specularStrength", 0.5f);
+        ourShader.setFloat("shininess", 32.0f);
+
+        glm::mat4 modelTvBase = baseTvTable;
+        modelTvBase = glm::translate(modelTvBase, glm::vec3(0.0f, -0.07f, 0.0f)); // Masa üstü y=-0.08 hizasında durur
+        modelTvBase = glm::scale(modelTvBase, glm::vec3(0.4f, 0.02f, 0.25f)); // Büyütüldü (0.3 -> 0.4)
+        ourShader.setMat4("model", modelTvBase);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Televizyon Ayağı (Stand Neck)
+        glm::mat4 modelTvNeck = baseTvTable;
+        modelTvNeck = glm::translate(modelTvNeck, glm::vec3(0.0f, 0.0f, 0.0f));
+        modelTvNeck = glm::scale(modelTvNeck, glm::vec3(0.05f, 0.12f, 0.05f)); // Büyütüldü (0.1 -> 0.12)
+        ourShader.setMat4("model", modelTvNeck);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Televizyon Çerçevesi (TV Bezel/Body)
+        glm::mat4 modelTvFrame = baseTvTable;
+        modelTvFrame = glm::translate(modelTvFrame, glm::vec3(0.0f, 0.27f, 0.0f)); // Neck yüksekliği ile orantılı
+        modelTvFrame = glm::scale(modelTvFrame, glm::vec3(0.92f, 0.42f, 0.05f)); // Büyütüldü (0.7 -> 0.92, 0.28 -> 0.42)
+        ourShader.setMat4("model", modelTvFrame);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // Televizyon Ekranı (Kedi Resmi / catTexture - Işıksız Canlı Mod)
+        glBindTexture(GL_TEXTURE_2D, catTexture);
+        ourShader.setBool("useTexture", true);
+        ourShader.setBool("isScreen", true); // Shader'da aydınlatmayı kapatıp ekranı canlı parlatmak için
+        ourShader.setVec3("objectColor", 1.0f, 1.0f, 1.0f);
+        ourShader.setFloat("specularStrength", 0.0f);
+        ourShader.setVec2("uvScale", glm::vec2(1.0f, 1.0f));
+
+        glm::mat4 modelTvScreen = baseTvTable;
+        modelTvScreen = glm::translate(modelTvScreen, glm::vec3(0.0f, 0.27f, 0.027f)); // TV çerçevesinin biraz önünde
+        modelTvScreen = glm::scale(modelTvScreen, glm::vec3(0.88f, 0.38f, 0.005f)); // Büyütüldü (0.66 -> 0.88, 0.24 -> 0.38)
+        ourShader.setMat4("model", modelTvScreen);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        ourShader.setBool("isScreen", false); // Diğer çizimler için ekran modunu kapatıyoruz
 
         // 9. BACA VE BACA DUMANI ANIMASYONU
         // ------------------------------------------------------------------
